@@ -17,7 +17,9 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.Calendar;
 import java.util.Enumeration;
+import java.util.GregorianCalendar;
 
 
 
@@ -106,15 +108,13 @@ public class TCPConnection {
 					System.out.println("Esperando mensaje...");
 					String line= breader.readLine();
 					if(line.equals(REMOTE_IPCONFIG)) {
-						System.out.println(":. se pidio la ip");
-						String Comand = InetAddress.getLocalHost().getHostAddress();
-						sendMessage(Comand);
-						System.out.println(":. se envio la ip: " + Comand);
+//						System.out.println(":. se pidio la ip");
+						sendMessage(InetAddress.getLocalHost().getHostAddress());
+//						System.out.println(":. se envio la ip: " + Comand);
 					}else if(line.equals(INTERCFACE)) {
-						String Comand = getInterfaces();
-						sendMessage(Comand);
+						sendMessage(getInterfaces());
 					}else if(line.equals(WHAT_TIME_IS_IT)) {
-						
+						sendMessage(getHour());
 					}
 					if(listener!=null) listener.onMessage(line);
 			
@@ -148,6 +148,17 @@ public class TCPConnection {
 		}
 		
 		return line;
+	}
+	
+	
+	private String getHour() {
+		int seg, min,hora;
+		Calendar time = new GregorianCalendar();
+		seg = time.get(Calendar.SECOND);
+		min = time.get(Calendar.MINUTE);
+		hora = time.get(Calendar.HOUR);
+		
+		return seg + " : " +min + " : " + hora;
 	}
 
 	public void sendMessage(String msg) {
