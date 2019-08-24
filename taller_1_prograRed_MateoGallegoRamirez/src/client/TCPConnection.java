@@ -12,14 +12,24 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.Enumeration;
 
 
 
 public class TCPConnection {
-
+	
+	public static final String REMOTE_IPCONFIG = "remoteIpconfig";
+	public static final String INTERCFACE = "interface";
+	public static final String WHAT_TIME_IS_IT = "whatTimeIsIt";
+	public static final String RTT = "RTT";
+	public static final String SPEED = "speed";
+	
+	
 	private ServerSocket server;
 	private Socket socket;
 	private BufferedWriter bwriter;
@@ -35,9 +45,8 @@ public class TCPConnection {
 		return (instance == null)? instance = new TCPConnection():instance;
 	}
 	
-	public static TCPConnection setIp(String ip) {
-		instance.ip=ip;
-		return instance;
+	public void setIp(String ip) {
+		this.ip=ip;
 	}
 	
 	public static TCPConnection setPuerto(int puerto) {
@@ -62,13 +71,13 @@ public class TCPConnection {
 		return instance;
 	}
 	
-	public static TCPConnection requestConnection() {
+	public void requestConnection() {
 		try {
 			
 			System.out.println("Solicitando Conexion...");
-			instance.socket= new Socket(instance.ip,instance.puerto);
+			socket= new Socket(ip,puerto);
 			System.out.println("Conexion aceptada");
-			instance.initReaderAndWriter();
+			initReaderAndWriter();
 		
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
@@ -76,7 +85,6 @@ public class TCPConnection {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		return instance;
 	}
 
 	private void initReaderAndWriter() {
@@ -97,6 +105,17 @@ public class TCPConnection {
 				while(true) {
 					System.out.println("Esperando mensaje...");
 					String line= breader.readLine();
+					if(line.equals(REMOTE_IPCONFIG)) {
+						System.out.println(":. se pidio la ip");
+						String Comand = InetAddress.getLocalHost().getHostAddress();
+						sendMessage(Comand);
+						System.out.println(":. se envio la ip: " + Comand);
+					}else if(line.equals(INTERCFACE)) {
+						String Comand = getInterfaces();
+						sendMessage(Comand);
+					}else if(line.equals(WHAT_TIME_IS_IT)) {
+						
+					}
 					if(listener!=null) listener.onMessage(line);
 			
 			
@@ -108,6 +127,28 @@ public class TCPConnection {
 		
 		
 	}
+	
+	
+	private String getInterfaces() {
+		String line ="";
+		try {
+			Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+			boolean stop = false;
+			
+			while(interfaces.hasMoreElements() && !stop) {
+				NetworkInterface interN = interfaces.nextElement();
+				if (interN.isUp()) {
+					line = line + interN.getName();
+					stop = true;
+				}
+			}
+		} catch (SocketException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return line;
+	}
 
 	public void sendMessage(String msg) {
 		new Thread(
@@ -115,8 +156,10 @@ public class TCPConnection {
 					
 					try {
 						System.out.println("Enviando mensaje...");
+						
 						bwriter.write(msg+"\n");
 						bwriter.flush();
+							
 						System.out.println("Mensaje enviado");
 					} catch (IOException e) {
 						// TODO Auto-generated catch block

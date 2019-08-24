@@ -12,9 +12,12 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.Enumeration;
 
 
 
@@ -26,14 +29,13 @@ public class TCPConnection {
 	public static final String RTT = "RTT";
 	public static final String SPEED = "speed";
 	
+	
 	private ServerSocket server;
 	private Socket socket;
 	private BufferedWriter bwriter;
 	private BufferedReader breader;
 	private int puerto;
 	private String ip;
-	
-	private String Comand;
 	
 	private static TCPConnection  instance;
 	
@@ -104,9 +106,15 @@ public class TCPConnection {
 					System.out.println("Esperando mensaje...");
 					String line= breader.readLine();
 					if(line.equals(REMOTE_IPCONFIG)) {
-						Comand = InetAddress.getLocalHost().getHostAddress();
+						System.out.println(":. se pidio la ip");
+						String Comand = InetAddress.getLocalHost().getHostAddress();
+						sendMessage(Comand);
+						System.out.println(":. se envio la ip: " + Comand);
 					}else if(line.equals(INTERCFACE)) {
-//						comand = InetAddress.getby
+						String Comand = getInterfaces();
+						sendMessage(Comand);
+					}else if(line.equals(WHAT_TIME_IS_IT)) {
+						
 					}
 					if(listener!=null) listener.onMessage(line);
 			
@@ -119,6 +127,28 @@ public class TCPConnection {
 		
 		
 	}
+	
+	
+	private String getInterfaces() {
+		String line ="";
+		try {
+			Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+			boolean stop = false;
+			
+			while(interfaces.hasMoreElements() && !stop) {
+				NetworkInterface interN = interfaces.nextElement();
+				if (interN.isUp()) {
+					line = line + interN.getName();
+					stop = true;
+				}
+			}
+		} catch (SocketException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return line;
+	}
 
 	public void sendMessage(String msg) {
 		new Thread(
@@ -126,8 +156,10 @@ public class TCPConnection {
 					
 					try {
 						System.out.println("Enviando mensaje...");
+						
 						bwriter.write(msg+"\n");
 						bwriter.flush();
+							
 						System.out.println("Mensaje enviado");
 					} catch (IOException e) {
 						// TODO Auto-generated catch block
